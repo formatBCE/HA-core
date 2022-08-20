@@ -1,0 +1,21 @@
+"""Constants for the Format BLE Tracker integration."""
+
+DOMAIN = "format_ble_tracker"
+
+MAC = "mac"
+NAME = "name"
+SIXTEENTH_REGEX = "[0-9A-F]"
+MAC_REGEX = "^([0-9A-F]{2}[:]){5}([0-9A-F]{2})$"
+UUID_REGEX = "^[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$"
+
+ROOM = "room"
+ROOT_TOPIC = "format_ble_tracker"
+ALIVE_NODES_TOPIC = ROOT_TOPIC + "/alive"
+RSSI = "rssi"
+TIMESTAMP = "timestamp"
+MERGE_IDS = "merge_ids"
+ENTITY_ID = "entity_id"
+NEW_STATE = "new_state"
+MERGE_LOGIC = "merge_logic"
+HOME_WHEN_AND = "home_when_and"
+HOME_WHEN_OR = "home_when_or"

@@ -353,6 +353,7 @@ build.json @home-assistant/supervisor
 /tests/components/forecast_solar/ @klaasnicolaas @frenck
 /homeassistant/components/forked_daapd/ @uvjustin
 /tests/components/forked_daapd/ @uvjustin
+/homeassistant/components/format_ble_tracker/ @formatBCE
 /homeassistant/components/fortios/ @kimfrellsen
 /homeassistant/components/foscam/ @skgsergio
 /tests/components/foscam/ @skgsergio

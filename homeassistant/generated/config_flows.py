@@ -115,6 +115,7 @@ FLOWS = {
         "flux_led",
         "forecast_solar",
         "forked_daapd",
+        "format_ble_tracker",
         "foscam",
         "freebox",
         "freedompro",

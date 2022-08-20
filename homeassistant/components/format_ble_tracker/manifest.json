@@ -1,0 +1,14 @@
+{
+  "domain": "format_ble_tracker",
+  "name": "Format BLE Tracker",
+  "config_flow": true,
+  "documentation": "https://github.com/formatBCE/Format-BLE-Tracker/blob/main/README.md",
+  "issue_tracker": "https://github.com/formatBCE/Format-BLE-Tracker/issues",
+  "requirements": [],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": ["mqtt"],
+  "codeowners": ["@formatBCE"],
+  "iot_class": "local_push"
+}
