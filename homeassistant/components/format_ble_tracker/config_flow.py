@@ -11,9 +11,9 @@ from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 
 from .const import (
+    AWAY_WHEN_AND,
+    AWAY_WHEN_OR,
     DOMAIN,
-    HOME_WHEN_AND,
-    HOME_WHEN_OR,
     MAC,
     MAC_REGEX,
     MERGE_IDS,
@@ -46,14 +46,14 @@ CHOOSE_DATA_SCHEMA = vol.Schema(
 )
 
 CONF_MERGE_LOGIC = {
-    HOME_WHEN_AND: "Show as home, when ALL trackers are home",
-    HOME_WHEN_OR: "Show as home, when ANY tracker is home",
+    AWAY_WHEN_OR: "Show as away, when ANY tracker is away",
+    AWAY_WHEN_AND: "Show as away, when ALL trackers are away",
 }
 
 MERGE_SCHEMA = vol.Schema(
     {
         vol.Required(NAME): str,
-        vol.Required(MERGE_LOGIC, default=HOME_WHEN_AND): vol.In(CONF_MERGE_LOGIC),
+        vol.Required(MERGE_LOGIC, default=AWAY_WHEN_OR): vol.In(CONF_MERGE_LOGIC),
         vol.Required(CONF_ENTITIES): selector.EntitySelector(
             selector.EntitySelectorConfig(
                 integration="format_ble_tracker", domain="device_tracker", multiple=True

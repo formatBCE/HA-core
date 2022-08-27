@@ -44,7 +44,7 @@ class BleCurrentRoomSensor(BeaconDeviceEntity, SensorEntity):
         if len(self.coordinator.room_data) == 0:
             return None
         attr = {}
-        attr["current_rooms"] = {}
-        for key, value in self.coordinator.room_data.items():
-            attr["current_rooms"][key] = f"{value} dBm"
+        attr["rssi"] = {}
+        for key, value in self.coordinator.filtered_room_data.items():
+            attr["rssi"][key] = f"{value} dBm"
         return attr

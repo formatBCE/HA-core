@@ -12,10 +12,10 @@ from homeassistant.helpers.event import async_track_state_change_event
 from .__init__ import BeaconCoordinator
 from .common import BeaconDeviceEntity
 from .const import (
+    AWAY_WHEN_AND,
+    AWAY_WHEN_OR,
     DOMAIN,
     ENTITY_ID,
-    HOME_WHEN_AND,
-    HOME_WHEN_OR,
     MERGE_IDS,
     MERGE_LOGIC,
     NAME,
@@ -134,14 +134,14 @@ class MergedDeviceTracker(BaseTrackerEntity):
         self.states[entity_id] = new_state
         states = self.states.values()
         if None in states:
-            self.merged_state = None
+            self.merged_state = STATE_UNKNOWN
         else:
-            if self.logic == HOME_WHEN_AND:
+            if self.logic == AWAY_WHEN_OR:
                 if STATE_NOT_HOME in states:
                     self.merged_state = STATE_NOT_HOME
                 else:
                     self.merged_state = STATE_HOME
-            elif self.logic == HOME_WHEN_OR:
+            elif self.logic == AWAY_WHEN_AND:
                 if STATE_HOME in states:
                     self.merged_state = STATE_HOME
                 else:
@@ -154,9 +154,11 @@ class MergedDeviceTracker(BaseTrackerEntity):
             return None
         attr = {}
         attr["included_trackers"] = self.ids
-        if self.logic == HOME_WHEN_AND:
-            logic = "All are home"
+        if self.logic == AWAY_WHEN_OR:
+            logic = "Home when all are home"
+        elif self.logic == AWAY_WHEN_AND:
+            logic = "Home when any is home"
         else:
-            logic = "Any is home"
+            logic = None
         attr["show_home_when"] = logic
         return attr

@@ -4,6 +4,9 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+
+# import numpy as np
+import math
 import time
 from typing import Any
 
@@ -99,21 +102,26 @@ class BeaconCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.default_expiration_time: int = 2
         given_name = data[NAME] if data.__contains__(NAME) else self.mac
         self.room_data = dict[str, int]()
+        self.filtered_room_data = dict[str, int]()
+        self.room_filters = dict[str, KalmanFilter]()
         self.room_expiration_timers = dict[str, asyncio.TimerHandle]()
         self.room: str | None = None
+        self.last_received_adv_time = None
+        self.time_from_previous = None
 
         super().__init__(hass, _LOGGER, name=given_name)
 
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data via library."""
-        if len(self.room_data) == 0:
+        if len(self.filtered_room_data) == 0:
             self.room = None
+            self.last_received_adv_time = None
         else:
             self.room = next(
                 iter(
                     dict(
                         sorted(
-                            self.room_data.items(),
+                            self.filtered_room_data.items(),
                             key=lambda item: item[1],
                             reverse=True,
                         )
@@ -140,10 +148,21 @@ class BeaconCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 _LOGGER.info("Received message with old timestamp, skipping")
                 return
 
+        self.time_from_previous = (
+            None
+            if self.last_received_adv_time is None
+            else (current_time - self.last_received_adv_time)
+        )
+        self.last_received_adv_time = current_time
+
         room_topic = msg.topic.split("/")[2]
 
         await self.schedule_data_expiration(room_topic)
-        self.room_data[room_topic] = data.get(RSSI)
+
+        rssi = data.get(RSSI)
+        self.room_data[room_topic] = rssi
+        self.filtered_room_data[room_topic] = self.get_filtered_value(room_topic, rssi)
+
         await self.async_refresh()
 
     async def schedule_data_expiration(self, room):
@@ -157,6 +176,16 @@ class BeaconCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         )
         self.room_expiration_timers[room] = timer
 
+    def get_filtered_value(self, room, value) -> int:
+        """Apply Kalman filter."""
+        k_filter: KalmanFilter
+        if room in self.room_filters:
+            k_filter = self.room_filters[room]
+        else:
+            k_filter = KalmanFilter(0.01, 5)
+            self.room_filters[room] = k_filter
+        return int(k_filter.filter(value))
+
     def get_expiration_time(self):
         """Calculate current expiration delay."""
         return getattr(self, "expiration_time", self.default_expiration_time) * 60
@@ -164,6 +193,8 @@ class BeaconCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def expire_data(self, room):
         """Set data for certain room expired."""
         del self.room_data[room]
+        del self.filtered_room_data[room]
+        del self.room_filters[room]
         del self.room_expiration_timers[room]
         await self.async_refresh()
 
@@ -174,3 +205,71 @@ class BeaconCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.expiration_time = new_time
         for room in self.room_expiration_timers.keys():
             await self.schedule_data_expiration(room)
+
+
+class KalmanFilter:
+    """Filtering RSSI data."""
+
+    cov = float("nan")
+    param_x = float("nan")
+
+    def __init__(self, param_r, param_q):
+        """Initialize filter.
+
+        :param R: Process Noise
+        :param Q: Measurement Noise
+        """
+        self.param_a = 1
+        self.param_b = 0
+        self.param_c = 1
+
+        self.param_r = param_r
+        self.param_q = param_q
+
+    def filter(self, measurement):
+        """Filter measurement.
+
+        :param measurement: The measurement value to be filtered
+        :return: The filtered value
+        """
+        param_u = 0
+        if math.isnan(self.param_x):
+            self.param_x = (1 / self.param_c) * measurement
+            self.cov = (1 / self.param_c) * self.param_q * (1 / self.param_c)
+        else:
+            pred_x = (self.param_a * self.param_x) + (self.param_b * param_u)
+            pred_cov = ((self.param_a * self.cov) * self.param_a) + self.param_r
+
+            # Kalman Gain
+            param_k = (
+                pred_cov
+                * self.param_c
+                * (1 / ((self.param_c * pred_cov * self.param_c) + self.param_q))
+            )
+
+            # Correction
+            self.param_x = pred_x + param_k * (measurement - (self.param_c * pred_x))
+            self.cov = pred_cov - (param_k * self.param_c * pred_cov)
+
+        return self.param_x
+
+    def last_measurement(self):
+        """Return the last measurement fed into the filter.
+
+        :return: The last measurement fed into the filter
+        """
+        return self.param_x
+
+    def set_measurement_noise(self, noise):
+        """Set measurement noise.
+
+        :param noise: The new measurement noise
+        """
+        self.param_q = noise
+
+    def set_process_noise(self, noise):
+        """Set process noise.
+
+        :param noise: The new process noise
+        """
+        self.param_r = noise
